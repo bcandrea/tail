@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/aristanetworks/tail/util"
-
 	"gopkg.in/fsnotify.v0"
 	"gopkg.in/tomb.v1"
 )

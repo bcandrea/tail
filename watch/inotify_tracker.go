@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/aristanetworks/tail/util"
-
 	"gopkg.in/fsnotify.v0"
 )
 

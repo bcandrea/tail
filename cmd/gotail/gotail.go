@@ -5,8 +5,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ActiveState/tail"
 	"os"
+
+	"github.com/aristanetworks/tail"
 )
 
 func args2config() (tail.Config, int64) {
