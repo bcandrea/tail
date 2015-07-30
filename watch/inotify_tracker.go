@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ActiveState/tail/util"
+	"github.com/aristanetworks/tail/util"
 
 	"gopkg.in/fsnotify.v0"
 )
