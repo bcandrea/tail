@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"syscall"
 
 	"github.com/aristanetworks/tail/util"
 	"gopkg.in/fsnotify.v0"
@@ -112,8 +113,9 @@ func (shared *InotifyTracker) run() {
 		case err, open := <-shared.watcher.Error:
 			if !open {
 				return
+			} else if err != nil && err.(*os.SyscallError).Err != syscall.EINTR {
+				logger.Printf("Error in Watcher Errors channel: %s", err)
 			}
-			logger.Printf("Error in Watcher Errors channel: %s", err)
 
 		case <-shared.done:
 			return
