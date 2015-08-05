@@ -151,8 +151,11 @@ func (shared *InotifyTracker) run() {
 		case err, open := <-shared.watcher.Error:
 			if !open {
 				return
-			} else if err != nil && err.(*os.SyscallError).Err != syscall.EINTR {
-				logger.Printf("Error in Watcher Errors channel: %s", err)
+			} else if err != nil {
+				sysErr, ok := err.(*os.SyscallError)
+				if !ok || sysErr.Err != syscall.EINTR {
+					logger.Printf("Error in Watcher Error channel: %s", err)
+				}
 			}
 		}
 	}
