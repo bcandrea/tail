@@ -15,7 +15,7 @@ import (
 type InotifyTracker struct {
 	mux     sync.Mutex
 	watcher *fsnotify.Watcher
-	chans   map[string]chan *fsnotify.Event
+	chans   map[string]chan fsnotify.Event
 	done    map[string]chan bool
 	watch   chan *watchInfo
 	remove  chan string
@@ -35,7 +35,7 @@ var (
 	goRun = func() {
 		shared = &InotifyTracker{
 			mux:    sync.Mutex{},
-			chans:  make(map[string]chan *fsnotify.Event),
+			chans:  make(map[string]chan fsnotify.Event),
 			done:   make(map[string]chan bool),
 			watch:  make(chan *watchInfo),
 			remove: make(chan string),
@@ -77,7 +77,7 @@ func RemoveWatch(fname string) {
 // Events returns a channel to which FileEvents corresponding to the input filename
 // will be sent. This channel will be closed when removeWatch is called on this
 // filename.
-func Events(fname string) chan *fsnotify.Event {
+func Events(fname string) chan fsnotify.Event {
 	shared.mux.Lock()
 	defer shared.mux.Unlock()
 
@@ -96,7 +96,7 @@ func (shared *InotifyTracker) addWatch(fname string) error {
 	defer shared.mux.Unlock()
 
 	if shared.chans[fname] == nil {
-		shared.chans[fname] = make(chan *fsnotify.Event)
+		shared.chans[fname] = make(chan fsnotify.Event)
 		shared.done[fname] = make(chan bool)
 	}
 	return shared.watcher.Add(fname)
@@ -117,7 +117,7 @@ func (shared *InotifyTracker) removeWatch(fname string) {
 }
 
 // sendEvent sends the input event to the appropriate Tail.
-func (shared *InotifyTracker) sendEvent(event *fsnotify.Event) {
+func (shared *InotifyTracker) sendEvent(event fsnotify.Event) {
 	shared.mux.Lock()
 	ch := shared.chans[event.Name]
 	done := shared.done[event.Name]
@@ -152,7 +152,7 @@ func (shared *InotifyTracker) run() {
 			if !open {
 				return
 			}
-			shared.sendEvent(&event)
+			shared.sendEvent(event)
 
 		case err, open := <-shared.watcher.Errors:
 			if !open {
