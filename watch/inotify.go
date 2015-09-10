@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/aristanetworks/tail/util"
-	"gopkg.in/fsnotify.v0"
+	"gopkg.in/fsnotify.v1"
 	"gopkg.in/tomb.v1"
 )
 
@@ -27,7 +27,7 @@ func (fw *InotifyFileWatcher) BlockUntilExists(t *tomb.Tomb) error {
 	dirname := filepath.Dir(fw.Filename)
 
 	// Watch for new files to be created in the parent directory.
-	err := WatchFlags(dirname, fsnotify.FSN_CREATE)
+	err := Watch(dirname)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (fw *InotifyFileWatcher) ChangeEvents(t *tomb.Tomb, fi os.FileInfo) *FileCh
 		for {
 			prevSize := fw.Size
 
-			var evt *fsnotify.FileEvent
+			var evt *fsnotify.Event
 			var ok bool
 
 			select {
@@ -89,14 +89,14 @@ func (fw *InotifyFileWatcher) ChangeEvents(t *tomb.Tomb, fi os.FileInfo) *FileCh
 			}
 
 			switch {
-			case evt.IsDelete():
+			case evt.Op&fsnotify.Remove == fsnotify.Remove:
 				fallthrough
 
-			case evt.IsRename():
+			case evt.Op&fsnotify.Rename == fsnotify.Rename:
 				changes.NotifyDeleted()
 				return
 
-			case evt.IsModify():
+			case evt.Op&fsnotify.Write == fsnotify.Write:
 				fi, err := os.Stat(fw.Filename)
 				if err != nil {
 					if os.IsNotExist(err) {

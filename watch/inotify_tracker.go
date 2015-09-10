@@ -9,13 +9,13 @@ import (
 	"syscall"
 
 	"github.com/aristanetworks/tail/util"
-	"gopkg.in/fsnotify.v0"
+	"gopkg.in/fsnotify.v1"
 )
 
 type InotifyTracker struct {
 	mux     sync.Mutex
 	watcher *fsnotify.Watcher
-	chans   map[string]chan *fsnotify.FileEvent
+	chans   map[string]chan *fsnotify.Event
 	done    map[string]chan bool
 	watch   chan *watchInfo
 	remove  chan string
@@ -24,7 +24,6 @@ type InotifyTracker struct {
 
 type watchInfo struct {
 	fname string
-	flags uint32
 }
 
 var (
@@ -36,7 +35,7 @@ var (
 	goRun = func() {
 		shared = &InotifyTracker{
 			mux:    sync.Mutex{},
-			chans:  make(map[string]chan *fsnotify.FileEvent),
+			chans:  make(map[string]chan *fsnotify.Event),
 			done:   make(map[string]chan bool),
 			watch:  make(chan *watchInfo),
 			remove: make(chan string),
@@ -48,21 +47,13 @@ var (
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 )
 
-// WatchFlags signals the run goroutine to begin watching the input filename using
-// using all flags.
+// Watch signals the run goroutine to begin watching the input filename
 func Watch(fname string) error {
-	return WatchFlags(fname, fsnotify.FSN_ALL)
-}
-
-// WatchFlags signals the run goroutine to begin watching the input filename using
-// using the input flags.
-func WatchFlags(fname string, flags uint32) error {
 	// start running the shared InotifyTracker if not already running
 	once.Do(goRun)
 
 	shared.watch <- &watchInfo{
 		fname: fname,
-		flags: flags,
 	}
 	return <-shared.error
 }
@@ -86,7 +77,7 @@ func RemoveWatch(fname string) {
 // Events returns a channel to which FileEvents corresponding to the input filename
 // will be sent. This channel will be closed when removeWatch is called on this
 // filename.
-func Events(fname string) chan *fsnotify.FileEvent {
+func Events(fname string) chan *fsnotify.Event {
 	shared.mux.Lock()
 	defer shared.mux.Unlock()
 
@@ -100,15 +91,15 @@ func Cleanup(fname string) {
 
 // watchFlags calls fsnotify.WatchFlags for the input filename and flags, creating
 // a new Watcher if the previous Watcher was closed.
-func (shared *InotifyTracker) watchFlags(fname string, flags uint32) error {
+func (shared *InotifyTracker) addWatch(fname string) error {
 	shared.mux.Lock()
 	defer shared.mux.Unlock()
 
 	if shared.chans[fname] == nil {
-		shared.chans[fname] = make(chan *fsnotify.FileEvent)
+		shared.chans[fname] = make(chan *fsnotify.Event)
 		shared.done[fname] = make(chan bool)
 	}
-	return shared.watcher.WatchFlags(fname, flags)
+	return shared.watcher.Add(fname)
 }
 
 // removeWatch calls fsnotify.RemoveWatch for the input filename and closes the
@@ -118,7 +109,7 @@ func (shared *InotifyTracker) removeWatch(fname string) {
 	defer shared.mux.Unlock()
 
 	if ch := shared.chans[fname]; ch != nil {
-		shared.watcher.RemoveWatch(fname)
+		shared.watcher.Remove(fname)
 
 		delete(shared.chans, fname)
 		close(ch)
@@ -126,7 +117,7 @@ func (shared *InotifyTracker) removeWatch(fname string) {
 }
 
 // sendEvent sends the input event to the appropriate Tail.
-func (shared *InotifyTracker) sendEvent(event *fsnotify.FileEvent) {
+func (shared *InotifyTracker) sendEvent(event *fsnotify.Event) {
 	shared.mux.Lock()
 	ch := shared.chans[event.Name]
 	done := shared.done[event.Name]
@@ -152,18 +143,18 @@ func (shared *InotifyTracker) run() {
 	for {
 		select {
 		case winfo := <-shared.watch:
-			shared.error <- shared.watchFlags(winfo.fname, winfo.flags)
+			shared.error <- shared.addWatch(winfo.fname)
 
 		case fname := <-shared.remove:
 			shared.removeWatch(fname)
 
-		case event, open := <-shared.watcher.Event:
+		case event, open := <-shared.watcher.Events:
 			if !open {
 				return
 			}
-			shared.sendEvent(event)
+			shared.sendEvent(&event)
 
-		case err, open := <-shared.watcher.Error:
+		case err, open := <-shared.watcher.Errors:
 			if !open {
 				return
 			} else if err != nil {
