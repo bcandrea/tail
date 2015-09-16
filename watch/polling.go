@@ -92,14 +92,17 @@ func (fw *PollingFileWatcher) ChangeEvents(t *tomb.Tomb, origFi os.FileInfo) *Fi
 				prevSize = fw.Size
 				continue
 			}
-			prevSize = fw.Size
 
 			// File was appended to (changed)?
+			// The check on size is needed on Windows server 2008+
+			// due to a new "feature" of the OS (see http://bit.ly/1NCTeLc)
 			modTime := fi.ModTime()
-			if modTime != prevModTime {
+			if modTime != prevModTime || fw.Size > prevSize {
 				prevModTime = modTime
 				changes.NotifyModified()
 			}
+
+			prevSize = fw.Size
 		}
 	}()
 
