@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/aristanetworks/tail/util"
+	"github.com/bcandrea/tail/util"
 	"gopkg.in/tomb.v1"
 )
 

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/aristanetworks/tail/util"
+	"github.com/bcandrea/tail/util"
 	"gopkg.in/fsnotify.v1"
 	"gopkg.in/tomb.v1"
 )

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/aristanetworks/tail/util"
+	"github.com/bcandrea/tail/util"
 	"gopkg.in/fsnotify.v1"
 )
 

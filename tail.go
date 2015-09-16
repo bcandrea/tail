@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aristanetworks/tail/ratelimiter"
-	"github.com/aristanetworks/tail/util"
-	"github.com/aristanetworks/tail/watch"
+	"github.com/bcandrea/tail/ratelimiter"
+	"github.com/bcandrea/tail/util"
+	"github.com/bcandrea/tail/watch"
 
 	"gopkg.in/tomb.v1"
 )
